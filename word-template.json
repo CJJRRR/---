@@ -1,0 +1,61 @@
+[
+  {
+    "category": "Числа",
+    "categoryZh": "数字",
+    "icon": "🔢",
+    "bossEmoji": "🐉",
+    "bossName": "Дракон Чисел",
+    "skyColors": ["#87CEEB", "#E0F0FF"],
+    "groundColor": "#4CAF50",
+    "theme": "grass",
+    "words": [
+      {
+        "hanzi": "一",
+        "pinyin": "yī",
+        "ru": "один",
+        "difficulty": "easy",
+        "emoji": "1️⃣"
+      },
+      {
+        "hanzi": "二",
+        "pinyin": "èr",
+        "ru": "два",
+        "difficulty": "easy",
+        "emoji": "2️⃣"
+      }
+    ]
+  },
+  {
+    "category": "Еда",
+    "categoryZh": "食物",
+    "icon": "🍜",
+    "bossEmoji": "🐲",
+    "bossName": "Дракон Вкусняшек",
+    "skyColors": ["#FFE4B5", "#FFF8DC"],
+    "groundColor": "#8D6E63",
+    "theme": "cozy",
+    "words": [
+      {
+        "hanzi": "饭",
+        "pinyin": "fàn",
+        "ru": "рис/еда",
+        "difficulty": "easy",
+        "emoji": "🍚"
+      },
+      {
+        "hanzi": "水",
+        "pinyin": "shuǐ",
+        "ru": "вода",
+        "difficulty": "easy",
+        "emoji": "💧"
+      },
+      {
+        "hanzi": "茶",
+        "pinyin": "chá",
+        "ru": "чай",
+        "difficulty": "medium",
+        "emoji": "🍵"
+      }
+    ]
+  }
+]

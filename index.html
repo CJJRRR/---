@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>庄秦的汉字冒险游戏</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home-screen" class="screen active">
+  <div class="home-clouds"><span class="cloud">☁️</span><span class="cloud">☁️</span><span class="cloud">☁️</span><span class="cloud">☁️</span></div>
+  <div class="home-content">
+    <div class="home-mascot">🐼</div>
+    <h1 class="game-title">庄秦的汉字冒险</h1>
+    <p class="game-title-zh">Путешествие в Китайские Иероглифы</p>
+    <div id="home-stats" class="home-stats"></div>
+    <div id="home-recommend" class="home-recommend" onclick="G.smartRecommend()"></div>
+    <div class="home-buttons">
+      <button class="btn btn-primary btn-wide" onclick="G.openCourseSelect()">📚 Учить иероглифы</button>
+      <button class="btn btn-purple btn-wide" onclick="G.openDailyReview()">📖 Повторение</button>
+      <button class="btn btn-pink btn-wide" onclick="G.openMiniGameSelect()">🎯 Мини-игры</button>
+      <button class="btn btn-secondary btn-wide" onclick="G.openDifficultWords()">📝 Сложные слова</button>
+      <button class="btn btn-orange btn-wide" onclick="G.openBadges()">🏆 Коллекция</button>
+      <button class="btn btn-blue btn-wide" onclick="G.openProgress()">📊 Прогресс</button>
+      <button class="btn btn-accent btn-wide" onclick="G.openSettings()">⚙️ Настройки</button>
+      <button class="btn btn-ghost btn-wide" onclick="G.parentLockAction('editor')">✏️ Редактор слов 🔒</button>
+      <div class="home-version">v5.0</div>
+    </div>
+  </div>
+</div>
+
+<!-- COURSE SELECT -->
+<div id="course-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>📚 Курсы</h2></div>
+  <div id="course-grid" class="course-grid"></div>
+</div>
+
+<!-- STORY OVERLAY -->
+<div id="story-overlay" class="story-overlay">
+  <div class="story-box">
+    <div id="story-emoji" class="story-emoji">🐼</div>
+    <div id="story-title" class="story-title"></div>
+    <div id="story-text" class="story-text"></div>
+    <button class="btn btn-primary btn-small" onclick="G.closeStory()">Продолжить ➡️</button>
+  </div>
+</div>
+
+<!-- LEARN PREVIEW -->
+<div id="learn-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.openCourseSelect()">⬅️</button><h2 id="learn-title">Обучение</h2><span id="learn-counter" style="position:absolute;right:0;font-weight:700;color:var(--text-light);font-size:.85rem"></span></div>
+  <div class="progress-bar"><div id="learn-bar" class="progress-fill" style="width:10%"></div></div>
+  <div id="learn-card" class="learn-card"></div>
+  <div class="learn-nav">
+    <button id="lprev" class="btn btn-ghost" style="display:none" onclick="G.learnPrev()">⬅️</button>
+    <button id="lnext" class="btn btn-primary" onclick="G.learnNext()">Дальше ➡️</button>
+    <button id="ldone" class="btn btn-green" style="display:none" onclick="G.startLevel()">В бой! ⚔️</button>
+  </div>
+  <button class="btn btn-small btn-ghost" style="margin-top:4px;font-size:.8rem" onclick="G.startLevel()">⏭️ Пропустить</button>
+</div>
+
+<!-- PLATFORMER -->
+<div id="game-screen" class="screen">
+  <div class="game-canvas-wrap">
+    <div class="game-hud">
+      <div class="hud-box"><span id="hud-hearts" class="hud-hearts">❤️❤️❤️❤️❤️</span></div>
+      <div class="hud-box"><span id="hud-level" style="font-size:.75rem"></span></div>
+      <div class="hud-box"><span id="hud-coins">🪙 0</span></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="gate-prompt" class="gate-prompt" style="display:none"><h3>🚪 Ворота</h3><p>Ответь на 3 вопроса!</p><button class="btn btn-primary btn-small" onclick="G.startGateQuestions()">Начать</button></div>
+    <div class="mobile-controls"><div class="ctrl-left-right"><button class="ctrl-btn" id="ctrl-left">◀️</button><button class="ctrl-btn" id="ctrl-right">▶️</button></div><button class="ctrl-btn ctrl-jump" id="ctrl-jump">⬆️</button></div>
+  </div>
+</div>
+
+<!-- QUESTION MODAL -->
+<div id="q-modal" class="modal-overlay">
+  <div class="modal-content">
+    <div id="qm-emoji" class="modal-emoji"></div><div id="qm-hanzi" class="modal-hanzi"></div>
+    <div id="qm-pinyin" class="modal-pinyin"></div>
+    <button id="qm-audio" class="audio-btn" onclick="G.speakQ()">🔊</button>
+    <div id="qm-options" class="modal-options"></div>
+    <div id="qm-feedback" class="modal-feedback"></div>
+    <button id="qm-next" class="btn btn-primary btn-small modal-close-btn" style="display:none" onclick="G.closeQModal()">Продолжить ➡️</button>
+  </div>
+</div>
+
+<!-- BOSS -->
+<div id="boss-screen" class="screen">
+  <div class="screen-header" style="color:#fff"><button class="back-btn" onclick="G.openCourseSelect()" style="color:#fff">⬅️</button><h2 id="boss-title" style="color:#fff">Босс</h2></div>
+  <div class="boss-phase-bar" id="boss-phase-bar"></div>
+  <div id="boss-phase-label" class="boss-phase-label"></div>
+  <div class="boss-arena" id="boss-arena">
+    <div class="hp-bars">
+      <div class="hp-group"><div class="hp-label player-lbl">Ты 🧒</div><div id="b-player-hp" class="hp-hearts"></div></div>
+      <div class="boss-vs">VS</div>
+      <div class="hp-group" style="align-items:flex-end"><div class="hp-label boss-lbl">Босс 👾</div><div id="b-boss-hp" class="hp-hearts"></div></div>
+    </div>
+    <div class="boss-sprites">
+      <div id="b-player-sprite" class="boss-sprite"><span class="boss-sprite-emoji">🧒</span><span class="boss-sprite-name">Ты</span></div>
+      <div id="b-boss-sprite" class="boss-sprite"><span id="b-boss-emoji" class="boss-sprite-emoji">🐉</span><span class="boss-sprite-name">Босс</span></div>
+    </div>
+    <div class="boss-question"><div id="bq-label" class="boss-q-label"></div><div id="bq-hanzi" class="boss-q-hanzi"></div><button class="boss-audio" onclick="G.speakBoss()">🔊</button></div>
+    <div id="b-options" class="boss-options"></div>
+    <div id="b-feedback" class="boss-feedback"></div>
+    <div id="boss-phase-overlay" class="boss-phase-overlay" style="display:none"><h2 id="bpo-title"></h2><p id="bpo-desc"></p></div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="result-screen" class="screen">
+  <div id="res-emoji" class="result-emoji">🎉</div>
+  <h2 id="res-title" class="result-title win">Победа!</h2>
+  <div id="res-stars" class="result-stars"></div>
+  <p id="res-msg" class="result-msg"></p>
+  <div class="result-btns"><button class="btn btn-primary" onclick="G.openCourseSelect()">📚 Курсы</button><button id="res-next" class="btn btn-green">➡️ Дальше</button></div>
+</div>
+
+<!-- COURSE REPORT -->
+<div id="report-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.openCourseSelect()">⬅️</button><h2>📋 Отчёт</h2></div>
+  <div id="report-card" class="report-card"></div>
+  <div class="result-btns"><button class="btn btn-primary" onclick="G.openCourseSelect()">📚 Курсы</button><button id="report-next" class="btn btn-green">➡️ Следующий</button></div>
+</div>
+
+<!-- CHARACTER DETAIL -->
+<div id="detail-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" id="detail-back" onclick="history.back()">⬅️</button><h2>📋 Иероглиф</h2></div>
+  <div id="detail-card" class="detail-card"></div>
+</div>
+
+<!-- DAILY REVIEW -->
+<div id="daily-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>📖 Повторение</h2><span id="daily-counter" style="position:absolute;right:0;font-weight:700;color:var(--text-light);font-size:.85rem"></span></div>
+  <div class="progress-bar"><div id="daily-bar" class="progress-fill" style="width:0%"></div></div>
+  <div id="daily-empty" class="daily-empty" style="display:none"></div>
+  <div id="daily-card" class="daily-card"></div>
+  <div id="daily-options" class="daily-options"></div>
+  <div id="daily-feedback" class="daily-feedback"></div>
+  <button id="daily-next" class="btn btn-primary btn-small" style="display:none" onclick="G.dailyNext()">Дальше ➡️</button>
+</div>
+
+<!-- MINI GAME SELECT -->
+<div id="mg-select-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>🎯 Мини-игры</h2></div>
+  <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:380px">
+    <button class="btn btn-purple btn-wide" onclick="G.startMiniGame('match')">🔗 Соедини пары</button>
+    <button class="btn btn-secondary btn-wide" onclick="G.startMiniGame('audio')">👂 Угадай на слух</button>
+    <button class="btn btn-pink btn-wide" onclick="G.startMiniGame('memory')">🃏 Память</button>
+    <button class="btn btn-orange btn-wide" onclick="G.startMiniGame('speed')">⚡ Быстрый ответ</button>
+  </div>
+</div>
+
+<!-- MINI GAME -->
+<div id="minigame-screen" class="screen">
+  <div class="mg-header"><button class="back-btn" onclick="G.openMiniGameSelect()">⬅️</button><div id="mg-title" style="font-weight:800;font-size:.95rem"></div><div id="mg-timer" class="mg-timer"></div></div>
+  <div id="mg-instruction" class="mg-instruction"></div>
+  <div id="mg-score" class="mg-score"></div>
+  <div id="mg-area" style="width:100%;max-width:460px;display:flex;flex-direction:column;align-items:center;gap:10px"></div>
+  <div id="mg-result" class="mg-result" style="display:none"></div>
+</div>
+
+<!-- DIFFICULT WORDS -->
+<div id="difficult-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>📝 Сложные слова</h2></div>
+  <div id="diff-list" style="width:100%;max-width:460px;display:flex;flex-direction:column;gap:6px"></div>
+</div>
+
+<!-- BADGES -->
+<div id="badges-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>🏆 Коллекция</h2></div>
+  <div id="badge-grid" class="badge-grid"></div>
+</div>
+
+<!-- WORD EDITOR -->
+<div id="editor-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>✏️ Редактор слов</h2></div>
+  <div class="editor-toolbar">
+    <button class="btn btn-primary btn-small" onclick="G.showAddForm()">➕</button>
+    <button class="btn btn-secondary btn-small" onclick="G.exportWords()">📤 JSON</button>
+    <button class="btn btn-accent btn-small" onclick="G.toggleImport()">📥</button>
+    <button class="btn btn-ghost btn-small" onclick="G.parentLockAction('reset')">🔄 Сброс 🔒</button>
+  </div>
+  <div id="import-area" class="import-textarea">
+    <div style="display:flex;gap:5px;margin-bottom:5px"><button class="btn btn-small btn-ghost" id="import-json-tab" onclick="G.setImportTab('json')" style="flex:1;font-size:.75rem">JSON</button><button class="btn btn-small btn-ghost" id="import-csv-tab" onclick="G.setImportTab('csv')" style="flex:1;font-size:.75rem">CSV</button></div>
+    <textarea id="import-text" style="width:100%;height:60px;border:none;outline:none;font-family:monospace;font-size:.75rem" placeholder='JSON или CSV...'></textarea>
+    <div style="display:flex;gap:6px;margin-top:5px;justify-content:flex-end"><button class="btn btn-green btn-small" onclick="G.doImport()">Импорт</button><button class="btn btn-ghost btn-small" onclick="G.toggleImport()">Отмена</button></div>
+  </div>
+  <div id="editor-form" class="editor-form">
+    <h3 id="ef-title">Добавить слово</h3>
+    <div class="form-row"><div class="form-group"><label>汉字</label><input id="ef-hanzi" placeholder="字"></div><div class="form-group"><label>Пиньинь</label><input id="ef-pinyin" placeholder="zì"></div></div>
+    <div class="form-row"><div class="form-group"><label>Русский</label><input id="ef-ru" placeholder="иероглиф"></div><div class="form-group"><label>Категория</label><input id="ef-cat" placeholder="Числа" list="cat-list"></div></div>
+    <div class="form-row"><div class="form-group"><label>Сложность</label><select id="ef-diff"><option value="easy">Легко</option><option value="medium">Средне</option><option value="hard">Сложно</option></select></div><div class="form-group"><label>Эмодзи</label><input id="ef-emoji" placeholder="😊"></div></div>
+    <div class="form-row"><div class="form-group"><label>Пример</label><input id="ef-example" placeholder="你好"></div><div class="form-group"><label>Перевод</label><input id="ef-example-ru" placeholder="привет"></div></div>
+    <datalist id="cat-list"></datalist>
+    <div class="form-actions"><button class="btn btn-green btn-small" onclick="G.saveWord()">💾</button><button class="btn btn-ghost btn-small" onclick="G.hideAddForm()">Отмена</button></div>
+    <input type="hidden" id="ef-edit-idx" value="-1">
+  </div>
+  <div id="editor-filter" class="editor-filter"></div>
+  <div id="word-list" class="word-list"></div>
+</div>
+
+<!-- PROGRESS -->
+<div id="progress-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>📊 Прогресс</h2></div>
+  <div id="stats-grid" class="stats-grid"></div>
+  <h3 class="section-title">Курсы</h3><div id="wp-list" class="world-progress-list"></div>
+  <h3 class="section-title">Частые ошибки</h3><div id="mistake-list" class="mistake-list"></div>
+  <h3 class="section-title">💾 Данные</h3>
+  <div class="backup-section"><button class="btn btn-secondary btn-small" onclick="G.exportAllData()">📤 Бэкап</button><button class="btn btn-accent btn-small" onclick="G.triggerImportBackup()">📥 Восстановить</button><input type="file" id="backup-file" accept=".json" style="display:none" onchange="G.importAllData(event)"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>⚙️ Настройки</h2></div>
+  <div class="settings-card">
+    <h3>🔊 Звук</h3>
+    <div class="settings-row"><div><div class="settings-label">Звуковые эффекты</div><div class="settings-desc">Включить/выключить звуки</div></div><div id="toggle-sound" class="toggle on" onclick="G.toggleSetting('sound')"></div></div>
+    <div class="settings-row"><div><div class="settings-label">Авто-произношение</div><div class="settings-desc">Автоматически читать иероглифы</div></div><div id="toggle-autospeak" class="toggle on" onclick="G.toggleSetting('autospeak')"></div></div>
+  </div>
+  <div class="settings-card">
+    <h3>🎯 Обучение</h3>
+    <div class="settings-row"><div><div class="settings-label">Показывать пиньинь</div><div class="settings-desc">Всегда показывать пиньинь (кроме Boss)</div></div><div id="toggle-pinyin" class="toggle" onclick="G.toggleSetting('pinyin')"></div></div>
+    <div class="settings-row"><div><div class="settings-label">Сложность</div><div class="settings-desc">Влияет на количество ошибок</div></div>
+      <div class="diff-btns"><button class="diff-btn" data-d="easy" onclick="G.setDifficulty('easy')">Легко</button><button class="diff-btn active" data-d="normal" onclick="G.setDifficulty('normal')">Обычно</button><button class="diff-btn" data-d="hard" onclick="G.setDifficulty('hard')">Сложно</button></div>
+    </div>
+  </div>
+  <div class="settings-card">
+    <h3>💾 Данные</h3>
+    <div class="settings-row"><div><div class="settings-label">Сбросить прогресс</div><div class="settings-desc">Удалить все данные и начать заново</div></div><button class="btn btn-small btn-ghost" onclick="G.parentLockAction('reset')" style="color:var(--red)">🔄 Сброс 🔒</button></div>
+  </div>
+</div>
+
+<!-- PARENT LOCK -->
+<div id="lock-modal" class="lock-modal">
+  <div class="lock-content">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Для родителей</div>
+    <div class="lock-desc">Реши пример:</div>
+    <div id="lock-question" class="lock-question"></div>
+    <input id="lock-answer" class="lock-input" type="number" placeholder="?">
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button class="btn btn-primary btn-small" onclick="G.checkLock()">Проверить</button><button class="btn btn-ghost btn-small" onclick="G.closeLock()">Отмена</button></div>
+    <div id="lock-error" class="lock-error"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
