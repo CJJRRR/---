@@ -18,6 +18,15 @@ const G = {
   storyCallback:null,
 };
 
+const SHOP_ITEMS=[
+  {id:'choco',icon:'🍫',name:'Шоколад',cost:120,desc:'Небольшой сладкий приз'},
+  {id:'chips',icon:'🥔',name:'Чипсы',cost:140,desc:'Хрустящий приз'},
+  {id:'icecream',icon:'🍦',name:'Мороженое',cost:160,desc:'Любимое угощение'},
+  {id:'juice',icon:'🧃',name:'Сок',cost:90,desc:'Быстрый маленький приз'},
+  {id:'toy',icon:'🧸',name:'Маленькая игрушка',cost:260,desc:'Большой приз за старание'},
+];
+const STAR_REWARDS={1:15,2:60,3:90};
+
 const E = {
   canvas:null,ctx:null,W:800,H:450,
   running:false,paused:false,player:null,
@@ -74,6 +83,7 @@ G.showScreen=function(id){
   window.scrollTo(0,0);
 };
 G.goHome=function(){G.renderHome();G.showScreen('home-screen');};
+G.confirmExitLevel=function(){if(!confirm('Выйти из этой попытки? Прогресс текущего боя не сохранится.'))return;E.running=false;if(E.requestId){cancelAnimationFrame(E.requestId);E.requestId=null;}E.keys={};E.touch={left:false,right:false,jump:false};document.getElementById('gate-prompt').style.display='none';G.openCourseSelect();};
 
 // ===== DATA =====
 function getCourses(){try{const d=localStorage.getItem('hanzi_courses');if(d)return JSON.parse(d);}catch(e){}return getDefaultCourses();}
@@ -85,8 +95,9 @@ G.findWordByHanzi=function(hanzi){for(const c of getCourses())for(const w of c.l
 // ===== PROGRESS =====
 const PK='hanzi_progress';
 function getProgress(){try{const d=localStorage.getItem(PK);if(d)return JSON.parse(d);}catch(e){}return initProgress();}
-function initProgress(){const n=getCourses().length;const u=[];for(let i=0;i<n;i++)u.push(i);return{unlocked:u,stars:{},defeated:{},bestMistakes:{},coins:0,learned:0,mistakes:0,badges:{},lastPlayed:null,streak:0,streakDays:[]};}
+function initProgress(){const n=getCourses().length;const u=[];for(let i=0;i<n;i++)u.push(i);return{unlocked:u,stars:{},defeated:{},bestMistakes:{},coins:0,learned:0,mistakes:0,badges:{},redemptions:[],lastPlayed:null,streak:0,streakDays:[]};}
 function saveProgress(p){p.lastPlayed=todayStr();localStorage.setItem(PK,JSON.stringify(p));}
+function courseReward(stars){return STAR_REWARDS[stars]||0;}
 
 // ===== STREAKS (v5.0) =====
 function updateStreak(){
@@ -329,14 +340,15 @@ G.startGateQuestions=function(){document.getElementById('gate-prompt').style.dis
 G.showGateQ=function(){if(G.gateQIdx>=G.gateQs.length){if(G.gateCorrect>=3)G.levelComplete();else{toast('Попробуй ещё раз!');G.gateQIdx=0;G.gateCorrect=0;G.showGateQ();}return;}const w=G.gateQs[G.gateQIdx];G.showQModal(w,()=>{updateMastery(w.hanzi,true,'gate');G.gateCorrect++;G.gateQIdx++;setTimeout(()=>G.showGateQ(),600);},()=>{updateMastery(w.hanzi,false,'gate');G.gateQIdx++;setTimeout(()=>G.showGateQ(),800);},G.gateQIdx<2);};
 
 // ===== LEVEL COMPLETE =====
-G.levelComplete=function(){E.running=false;if(E.requestId){cancelAnimationFrame(E.requestId);E.requestId=null;}const prog=getProgress();prog.coins+=E.collectedCoins;prog.learned+=E.answeredQs;saveProgress(prog);if(G.levelIdx<2){toast('Отлично! 🎉');confetti();G.levelIdx++;setTimeout(()=>G.launchPlatformer(),1500);}else G.openBossBattle();};
+G.levelComplete=function(){E.running=false;if(E.requestId){cancelAnimationFrame(E.requestId);E.requestId=null;}const prog=getProgress();prog.coins+=E.collectedCoins;prog.learned+=E.answeredQs;saveProgress(prog);G.lastLevelWords=G.collectLevelBossWords();toast('Босс ждёт! 👾');confetti();setTimeout(()=>G.openBossBattle(),900);};
+G.collectLevelBossWords=function(){const seen=new Set(),picked=[];const add=w=>{if(w&&!seen.has(w.hanzi)){seen.add(w.hanzi);picked.push(w);}};E.qBlocks.forEach(b=>add(b.word));E.enemies.forEach(e=>add(e.word));E.coins.slice(0,2).forEach(c=>add(c.word));if(picked.length<4)shuffle(G.lesson.words).forEach(add);return picked.slice(0,Math.min(6,G.lesson.words.length));};
 
 // ===== BOSS (3 phases, NO PINYIN) =====
-G.openBossBattle=function(){const lesson=G.lesson;const words=lesson.words;G.bossPlayerHP=5;G.bossEnemyHP=words.length;G.bossCorrect=0;G.bossWrong=0;G.bossPhase=0;
+G.openBossBattle=function(){const lesson=G.lesson;const words=(G.lastLevelWords&&G.lastLevelWords.length?G.lastLevelWords:lesson.words);G.bossPlayerHP=5;G.bossEnemyHP=words.length;G.bossCorrect=0;G.bossWrong=0;G.bossPhase=0;
   const cs=getCourses();const course=cs[G.courseIdx];
   // Show boss story line
   if(course.bossLine){toast(course.bossLine,3000);}
-  const all=shuffle([...words]);const n1=Math.ceil(all.length/3),n2=Math.ceil((all.length-n1)/2);
+  const all=shuffle([...words,...words]);const n1=Math.ceil(all.length/3),n2=Math.ceil((all.length-n1)/2);
   G.bossPhaseWords=[all.slice(0,n1),all.slice(n1,n1+n2),all.slice(n1+n2)];
   G.bossPhases=[{type:'hanzi2ru',desc:'汉字 → 俄语'},{type:'ru2hanzi',desc:'俄语 → 汉字'},{type:'audio2hanzi',desc:'听力 → 汉字'}];
   G.bossQs=G.bossPhaseWords[0];G.bossQIdx=0;
@@ -345,24 +357,26 @@ G.openBossBattle=function(){const lesson=G.lesson;const words=lesson.words;G.bos
 };
 G.showBossPhaseOverlay=function(phase){const ph=G.bossPhases[phase];document.getElementById('bpo-title').textContent=`Фаза ${phase+1}`;document.getElementById('bpo-desc').textContent=ph.desc;document.getElementById('boss-phase-overlay').style.display='flex';setTimeout(()=>{document.getElementById('boss-phase-overlay').style.display='none';},1200);};
 G.updateBossPhaseBar=function(){const bar=document.getElementById('boss-phase-bar');bar.innerHTML='';for(let i=0;i<3;i++){const seg=document.createElement('div');seg.className='boss-phase-seg'+(i<G.bossPhase?' done':i===G.bossPhase?' active':'');bar.appendChild(seg);}document.getElementById('boss-phase-label').textContent=`Фаза ${G.bossPhase+1}/3: ${G.bossPhases[G.bossPhase].desc}`;};
-G.renderBossQ=function(){if(G.bossQIdx>=G.bossQs.length){if(G.bossPhase<2){G.bossPhase++;G.bossQs=G.bossPhaseWords[G.bossPhase];G.bossQIdx=0;G.updateBossPhaseBar();G.showBossPhaseOverlay(G.bossPhase);setTimeout(()=>G.renderBossQ(),1400);return;}else{G.bossWin();return;}}const w=G.bossQs[G.bossQIdx],words=G.lesson.words,ptype=G.bossPhases[G.bossPhase].type;let ph='',bh='';for(let i=0;i<5;i++)ph+=i<G.bossPlayerHP?'❤️':'🖤';for(let i=0;i<words.length;i++)bh+=i<G.bossEnemyHP?'💜':'🖤';document.getElementById('b-player-hp').textContent=ph;document.getElementById('b-boss-hp').textContent=bh;document.getElementById('b-feedback').textContent='';const wrongs=shuffle(words.filter(x=>x.hanzi!==w.hanzi)).slice(0,3);const bqL=document.getElementById('bq-label'),bqH=document.getElementById('bq-hanzi');
+G.renderBossQ=function(){if(G.bossEnemyHP<=0){G.bossWin();return;}if(G.bossQIdx>=G.bossQs.length){if(G.bossPhase<2){G.bossPhase++;G.bossQs=G.bossPhaseWords[G.bossPhase];G.bossQIdx=0;G.updateBossPhaseBar();G.showBossPhaseOverlay(G.bossPhase);setTimeout(()=>G.renderBossQ(),1400);return;}else{G.bossLose();return;}}const w=G.bossQs[G.bossQIdx],words=(G.lastLevelWords&&G.lastLevelWords.length?G.lastLevelWords:G.lesson.words),ptype=G.bossPhases[G.bossPhase].type;let ph='',bh='';for(let i=0;i<5;i++)ph+=i<G.bossPlayerHP?'❤️':'🖤';for(let i=0;i<words.length;i++)bh+=i<G.bossEnemyHP?'💜':'🖤';document.getElementById('b-player-hp').textContent=ph;document.getElementById('b-boss-hp').textContent=bh;document.getElementById('b-feedback').textContent='';document.querySelector('.boss-audio').style.display=ptype==='audio2hanzi'?'inline-flex':'none';const wrongs=shuffle(G.lesson.words.filter(x=>x.hanzi!==w.hanzi)).slice(0,3);const bqL=document.getElementById('bq-label'),bqH=document.getElementById('bq-hanzi');
   if(ptype==='hanzi2ru'){bqL.textContent='Что означает?';bqH.textContent=w.hanzi;bqH.style.fontSize='3rem';const opts=shuffle([w,...wrongs]),grid=document.getElementById('b-options');grid.innerHTML='';opts.forEach(o=>{const btn=document.createElement('button');btn.className='boss-opt';btn.textContent=o.ru;btn.dataset.hanzi=o.hanzi;btn.addEventListener('click',()=>G.handleBossAns(btn,o.hanzi===w.hanzi,w));grid.appendChild(btn);});}
   else if(ptype==='ru2hanzi'){bqL.textContent='Какой иероглиф?';bqH.textContent=w.ru;bqH.style.fontSize='1.5rem';const opts=shuffle([w,...wrongs]),grid=document.getElementById('b-options');grid.innerHTML='';opts.forEach(o=>{const btn=document.createElement('button');btn.className='boss-opt';btn.innerHTML=`<span class="boss-opt-hanzi">${o.hanzi}</span>`;btn.dataset.hanzi=o.hanzi;btn.addEventListener('click',()=>G.handleBossAns(btn,o.hanzi===w.hanzi,w));grid.appendChild(btn);});}
   else{bqL.textContent='Послушай и выбери 👂';bqH.textContent='🔊';bqH.style.fontSize='2rem';speak(w.hanzi);const opts=shuffle([w,...wrongs]),grid=document.getElementById('b-options');grid.innerHTML='';opts.forEach(o=>{const btn=document.createElement('button');btn.className='boss-opt';btn.innerHTML=`<span class="boss-opt-hanzi">${o.hanzi}</span>`;btn.dataset.hanzi=o.hanzi;btn.addEventListener('click',()=>G.handleBossAns(btn,o.hanzi===w.hanzi,w));grid.appendChild(btn);});}
 };
 G.handleBossAns=function(btn,correct,word){const all=document.querySelectorAll('#b-options .boss-opt');all.forEach(b=>b.classList.add('disabled'));const fb=document.getElementById('b-feedback'),ps=document.getElementById('b-player-sprite'),bs=document.getElementById('b-boss-sprite');
-  if(correct){btn.classList.add('correct');G.bossEnemyHP--;G.bossCorrect++;fb.textContent='Отличный удар! 💥';speak(word.hanzi);updateMastery(word.hanzi,true,'boss');bs.classList.add('hit');setTimeout(()=>bs.classList.remove('hit'),400);G.updateBossHP();setTimeout(()=>{G.bossQIdx++;G.renderBossQ();},1000);}
+  if(correct){btn.classList.add('correct');G.bossEnemyHP--;G.bossCorrect++;fb.textContent=G.bossEnemyHP<=0?'Босс побеждён! 💥':'Отличный удар! 💥';if(G.bossPhases[G.bossPhase].type==='audio2hanzi')speak(word.hanzi);updateMastery(word.hanzi,true,'boss');bs.classList.add('hit');setTimeout(()=>bs.classList.remove('hit'),400);G.updateBossHP();setTimeout(()=>{G.bossQIdx++;G.renderBossQ();},1000);}
   else{btn.classList.add('wrong');G.bossPlayerHP--;G.bossWrong++;fb.textContent=`Ответ: ${word.ru}`;updateMastery(word.hanzi,false,'boss');ps.classList.add('hit');setTimeout(()=>ps.classList.remove('hit'),400);all.forEach(b=>{if(b.dataset.hanzi===word.hanzi)b.classList.add('correct');});const prog=getProgress();prog.mistakes++;saveProgress(prog);G.updateBossHP();setTimeout(()=>{if(G.bossPlayerHP<=0)G.bossLose();else{G.bossQIdx++;G.renderBossQ();}},1500);}
 };
-G.updateBossHP=function(){let ph='',bh='';for(let i=0;i<5;i++)ph+=i<G.bossPlayerHP?'❤️':'🖤';for(let i=0;i<G.lesson.words.length;i++)bh+=i<G.bossEnemyHP?'💜':'🖤';document.getElementById('b-player-hp').textContent=ph;document.getElementById('b-boss-hp').textContent=bh;};
+G.updateBossHP=function(){let ph='',bh='';const words=(G.lastLevelWords&&G.lastLevelWords.length?G.lastLevelWords:G.lesson.words);for(let i=0;i<5;i++)ph+=i<G.bossPlayerHP?'❤️':'🖤';for(let i=0;i<words.length;i++)bh+=i<G.bossEnemyHP?'💜':'🖤';document.getElementById('b-player-hp').textContent=ph;document.getElementById('b-boss-hp').textContent=bh;};
 G.speakBoss=function(){const w=G.bossPhaseWords[G.bossPhase]?G.bossPhaseWords[G.bossPhase][G.bossQIdx]:null;if(w)speak(w.hanzi);};
 
 // ===== RESULT & REPORT =====
 G.bossWin=function(){
   const prog=getProgress();const total=G.totalLevelMistakes+G.bossWrong;let stars=1;if(total===0)stars=3;else if(total<3)stars=2;
+  if(G.levelIdx<2){prog.coins+=5;saveProgress(prog);toast('Босс побеждён! 🎉');confetti();G.levelIdx++;setTimeout(()=>G.launchPlatformer(),1500);return;}
+  const reward=courseReward(stars);
   const prev=prog.stars[G.courseIdx]||0;if(stars>prev)prog.stars[G.courseIdx]=stars;
   const prevM=prog.bestMistakes[G.courseIdx];if(prevM===undefined||total<prevM)prog.bestMistakes[G.courseIdx]=total;
-  prog.defeated[G.courseIdx]=true;prog.coins+=E.collectedCoins+5;
+  prog.defeated[G.courseIdx]=true;prog.coins+=reward;
   if(G.courseIdx+1<getCourses().length&&!prog.unlocked.includes(G.courseIdx+1))prog.unlocked.push(G.courseIdx+1);
   saveProgress(prog);earnBadge(G.courseIdx);
   // Show story post
@@ -389,7 +403,7 @@ G.showCourseReport=function(stars){
   const cs=getCourses();const course=cs[G.courseIdx];const words=course.lesson.words;const ps=getProfiles();
   const mastered=words.filter(w=>{const p=ps[w.hanzi];return p&&p.mastery>=80;}).length;
   const weak=words.filter(w=>{const p=ps[w.hanzi];return p&&p.mastery<50;});
-  const prog=getProgress();
+  const prog=getProgress(),reward=courseReward(stars);
   let st='';for(let i=0;i<3;i++)st+=i<stars?'⭐':'☆';
   const card=document.getElementById('report-card');
   let wordsHTML='';words.forEach(w=>{const p=ps[w.hanzi];const m=p?p.mastery:0;wordsHTML+=`<span class="report-word ${m<50?'weak':''}">${w.hanzi} ${m}%</span>`;});
@@ -401,8 +415,9 @@ G.showCourseReport=function(stars){
       <div class="report-stat"><div class="report-stat-val">${words.length}</div><div class="report-stat-label">Всего слов</div></div>
       <div class="report-stat"><div class="report-stat-val">${mastered}</div><div class="report-stat-label">Усвоено</div></div>
       <div class="report-stat"><div class="report-stat-val">${G.totalLevelMistakes+G.bossWrong}</div><div class="report-stat-label">Ошибок</div></div>
-      <div class="report-stat"><div class="report-stat-val">${prog.coins||0}</div><div class="report-stat-label">Монет 🪙</div></div>
+      <div class="report-stat"><div class="report-stat-val">+${reward}</div><div class="report-stat-label">Награда 🪙</div></div>
     </div>
+    <div class="reward-note">Баланс: ${prog.coins||0} 🪙 · 1⭐ +15, 2⭐ +60, 3⭐ +90</div>
     <div class="report-words">${wordsHTML}</div>
   `;
   const nb=document.getElementById('report-next');
@@ -464,6 +479,15 @@ G.openDifficultWords=function(){const ps=getProfiles();const dw=Object.values(ps
   if(!dw.length){list.innerHTML='<div class="diff-empty"><div class="diff-empty-icon">🌟</div><h3>Нет сложных слов!</h3><p style="color:var(--text-light)">Все иероглифы даются легко!</p></div>';G.showScreen('difficult-screen');return;}
   dw.forEach(p=>{const word=G.findWordByHanzi(p.hanzi);if(!word)return;const item=document.createElement('div');item.className='diff-word-card';item.innerHTML=`<div class="diff-hanzi">${p.hanzi}</div><div class="diff-info"><div class="diff-pinyin">${word.pinyin}</div><div class="diff-ru">${word.ru}</div><div class="diff-meta">Мастерство: ${p.mastery}% · Серия: ${p.streak}</div></div><div class="diff-count">${p.mastery}%</div>`;item.addEventListener('click',()=>G.openDetail(p.hanzi,'difficult-screen'));list.appendChild(item);});G.showScreen('difficult-screen');};
 G.openBadges=function(){const prog=getProgress();const cs=getCourses();const grid=document.getElementById('badge-grid');grid.innerHTML='';cs.forEach((c,i)=>{const earned=!!(prog.badges&&prog.badges[i]);const card=document.createElement('div');card.className=`badge-card ${earned?'earned':'locked'}`;card.innerHTML=`<div class="badge-icon">${earned?c.icon:'🔒'}</div><div class="badge-name">${c.nameRu}</div>${earned?`<div class="badge-date">${prog.badges[i].date}</div>`:'<div style="font-size:.65rem;color:var(--text-light);margin-top:2px">Не пройдено</div>'}`;grid.appendChild(card);});G.showScreen('badges-screen');};
+G.openShop=function(){
+  const prog=getProgress();if(!prog.redemptions)prog.redemptions=[];
+  document.getElementById('shop-wallet').innerHTML=`<div class="shop-balance">🪙 ${prog.coins||0}</div><div class="shop-hint">2⭐ за два курса хватает на шоколад. 3⭐ быстрее открывает мороженое и большие призы.</div>`;
+  const grid=document.getElementById('shop-grid');grid.innerHTML='';
+  SHOP_ITEMS.forEach(item=>{const can=(prog.coins||0)>=item.cost;const card=document.createElement('div');card.className='shop-card'+(can?'':' locked');card.innerHTML=`<div class="shop-icon">${item.icon}</div><div class="shop-name">${item.name}</div><div class="shop-desc">${item.desc}</div><div class="shop-cost">🪙 ${item.cost}</div><button class="btn btn-small ${can?'btn-green':'btn-ghost'}">${can?'Обменять':'Не хватает'}</button>`;card.querySelector('button').addEventListener('click',()=>G.redeemShopItem(item.id));grid.appendChild(card);});
+  G.renderShopHistory(prog);G.showScreen('shop-screen');
+};
+G.redeemShopItem=function(id){const item=SHOP_ITEMS.find(x=>x.id===id);if(!item)return;const prog=getProgress();if((prog.coins||0)<item.cost){toast(`Нужно ещё ${item.cost-(prog.coins||0)} 🪙`);return;}if(!confirm(`Обменять ${item.cost} монет на ${item.name}?`))return;prog.coins-=item.cost;if(!prog.redemptions)prog.redemptions=[];prog.redemptions.unshift({id:item.id,name:item.name,icon:item.icon,cost:item.cost,date:todayStr()});saveProgress(prog);toast(`${item.icon} Получено!`);G.openShop();};
+G.renderShopHistory=function(prog){const box=document.getElementById('shop-history');const items=(prog.redemptions||[]).slice(0,8);if(!items.length){box.innerHTML='<div class="shop-empty">Пока нет призов. Собери монеты за курсы!</div>';return;}box.innerHTML=items.map(x=>`<div class="shop-history-item"><span>${x.icon}</span><span>${x.name}</span><span>-${x.cost} 🪙</span><span>${x.date}</span></div>`).join('');};
 G.openEditor=function(){G.filterCat='all';G.renderEditorFilter();G.renderWordList();G.showScreen('editor-screen');};
 G.renderEditorFilter=function(){const cs=getCourses();const cats=['all',...cs.map(c=>c.lesson.category)];const div=document.getElementById('editor-filter');div.innerHTML='';cats.forEach(c=>{const btn=document.createElement('button');btn.className=`filter-chip ${G.filterCat===c?'active':''}`;btn.textContent=c==='all'?'Все':c;btn.addEventListener('click',()=>{G.filterCat=c;G.renderEditorFilter();G.renderWordList();});div.appendChild(btn);});};
 G.renderWordList=function(){const cs=getCourses();const list=document.getElementById('word-list');list.innerHTML='';cs.forEach((course,ci)=>{course.lesson.words.forEach((w,wi)=>{if(G.filterCat!=='all'&&course.lesson.category!==G.filterCat)return;const item=document.createElement('div');item.className='word-item';item.innerHTML=`<div class="word-hanzi-lg">${w.hanzi}</div><div class="word-details"><div class="word-pinyin-text">${w.pinyin}</div><div class="word-ru-text">${w.ru}</div><div class="word-meta">${course.lesson.category}</div></div><div class="word-actions"><button class="word-act-btn word-act-edit" data-ci="${ci}" data-wi="${wi}">✏️</button><button class="word-act-btn word-act-del" data-ci="${ci}" data-wi="${wi}">🗑️</button></div>`;item.querySelector('.word-hanzi-lg').addEventListener('click',()=>G.openDetail(w.hanzi,'editor-screen'));list.appendChild(item);});});list.querySelectorAll('.word-act-edit').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();G.editWord(+btn.dataset.ci,+btn.dataset.wi);});});list.querySelectorAll('.word-act-del').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const cs=getCourses();if(confirm(`Удалить "${cs[+btn.dataset.ci].lesson.words[+btn.dataset.wi].hanzi}"?`)){cs[+btn.dataset.ci].lesson.words.splice(+btn.dataset.wi,1);saveCourses(cs);G.renderEditorFilter();G.renderWordList();}});});};

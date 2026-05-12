@@ -21,6 +21,7 @@
       <button class="btn btn-primary btn-wide" onclick="G.openCourseSelect()">📚 Учить иероглифы</button>
       <button class="btn btn-purple btn-wide" onclick="G.openDailyReview()">📖 Повторение</button>
       <button class="btn btn-pink btn-wide" onclick="G.openMiniGameSelect()">🎯 Мини-игры</button>
+      <button class="btn btn-green btn-wide" onclick="G.openShop()">🛒 Магазин призов</button>
       <button class="btn btn-secondary btn-wide" onclick="G.openDifficultWords()">📝 Сложные слова</button>
       <button class="btn btn-orange btn-wide" onclick="G.openBadges()">🏆 Коллекция</button>
       <button class="btn btn-blue btn-wide" onclick="G.openProgress()">📊 Прогресс</button>
@@ -64,6 +65,7 @@
 <div id="game-screen" class="screen">
   <div class="game-canvas-wrap">
     <div class="game-hud">
+      <div class="hud-box hud-exit" onclick="G.confirmExitLevel()">⬅️ Выйти</div>
       <div class="hud-box"><span id="hud-hearts" class="hud-hearts">❤️❤️❤️❤️❤️</span></div>
       <div class="hud-box"><span id="hud-level" style="font-size:.75rem"></span></div>
       <div class="hud-box"><span id="hud-coins">🪙 0</span></div>
@@ -88,7 +90,7 @@
 
 <!-- BOSS -->
 <div id="boss-screen" class="screen">
-  <div class="screen-header" style="color:#fff"><button class="back-btn" onclick="G.openCourseSelect()" style="color:#fff">⬅️</button><h2 id="boss-title" style="color:#fff">Босс</h2></div>
+  <div class="screen-header" style="color:#fff"><button class="back-btn" onclick="G.confirmExitLevel()" style="color:#fff">⬅️</button><h2 id="boss-title" style="color:#fff">Босс</h2></div>
   <div class="boss-phase-bar" id="boss-phase-bar"></div>
   <div id="boss-phase-label" class="boss-phase-label"></div>
   <div class="boss-arena" id="boss-arena">
@@ -106,6 +108,15 @@
     <div id="b-feedback" class="boss-feedback"></div>
     <div id="boss-phase-overlay" class="boss-phase-overlay" style="display:none"><h2 id="bpo-title"></h2><p id="bpo-desc"></p></div>
   </div>
+</div>
+
+<!-- SHOP -->
+<div id="shop-screen" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="G.goHome()">⬅️</button><h2>🛒 Магазин призов</h2></div>
+  <div id="shop-wallet" class="shop-wallet"></div>
+  <div id="shop-grid" class="shop-grid"></div>
+  <h3 class="section-title">🎁 Получено</h3>
+  <div id="shop-history" class="shop-history"></div>
 </div>
 
 <!-- RESULT -->
